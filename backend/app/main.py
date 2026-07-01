@@ -28,15 +28,23 @@ async def shutdown():
 
 
 async def _get_candidates(req: RecommendRequest, media_type: str) -> list[dict]:
-    genre_id = None
-
-    if req.genre:
-        genres = await tmdb_service.get_genres(media_type)
-        genre_id = genres.get(req.genre.lower())
-
     if req.similar_title:
-        results = await tmdb_service.search_title(req.similar_title, "multi")
+        seed, results = await tmdb_service.find_similar_titles(req.similar_title)
+
+        if not results:
+            genre_id = None
+            if req.genre:
+                genres = await tmdb_service.get_genres(media_type)
+                genre_id = genres.get(req.genre.lower())
+
+            results = await tmdb_service.discover(media_type, genre_id)
     else:
+        genre_id = None
+
+        if req.genre:
+            genres = await tmdb_service.get_genres(media_type)
+            genre_id = genres.get(req.genre.lower())
+
         results = await tmdb_service.discover(media_type, genre_id)
 
     candidates = []
@@ -62,23 +70,28 @@ async def _get_candidates(req: RecommendRequest, media_type: str) -> list[dict]:
 async def recommend(req: RecommendRequest):
     start_time = time.perf_counter()
 
-    media_types = ["movie", "tv"] if req.media_type == "any" else [req.media_type]
-
     t0 = time.perf_counter()
-    candidate_lists = await asyncio.gather(*[
-        _get_candidates(req, mt)
-        for mt in media_types
-    ])
-    print(f"[TIMING] Candidate search: {time.perf_counter() - t0:.2f}s")
 
-    candidates = [c for sub in candidate_lists for c in sub]
+    if req.similar_title:
+        candidates = await _get_candidates(req, "movie")
+    else:
+        media_types = ["movie", "tv"] if req.media_type == "any" else [req.media_type]
+
+        candidate_lists = await asyncio.gather(*[
+            _get_candidates(req, mt)
+            for mt in media_types
+        ])
+
+        candidates = [c for sub in candidate_lists for c in sub]
+
+    print(f"[TIMING] Candidate search: {time.perf_counter() - t0:.2f}s", flush=True)
 
     if not candidates:
         raise HTTPException(404, "No matching titles found")
 
     t1 = time.perf_counter()
     picks = await ai_service.rank_and_explain(req, candidates)
-    print(f"[TIMING] AI ranking: {time.perf_counter() - t1:.2f}s")
+    print(f"[TIMING] AI ranking: {time.perf_counter() - t1:.2f}s", flush=True)
 
     if not picks:
         raise HTTPException(502, "AI ranking failed")
@@ -98,7 +111,7 @@ async def recommend(req: RecommendRequest):
         )
         for p in valid_picks
     ])
-    print(f"[TIMING] TMDB enrichment: {time.perf_counter() - t2:.2f}s")
+    print(f"[TIMING] TMDB enrichment: {time.perf_counter() - t2:.2f}s", flush=True)
 
     recommendations = []
 
@@ -123,6 +136,6 @@ async def recommend(req: RecommendRequest):
             )
         )
 
-    print(f"[TIMING] Total request: {time.perf_counter() - start_time:.2f}s")
+    print(f"[TIMING] Total request: {time.perf_counter() - start_time:.2f}s", flush=True)
 
     return RecommendResponse(recommendations=recommendations)

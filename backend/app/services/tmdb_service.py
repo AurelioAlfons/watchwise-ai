@@ -1,4 +1,6 @@
+import asyncio
 import httpx
+
 from app.config import settings
 
 _genre_cache: dict[str, dict[str, int]] = {}
@@ -27,6 +29,54 @@ async def search_title(query: str, media_type: str = "multi"):
     r = await client.get(f"/search/{media_type}", params={"query": query})
     r.raise_for_status()
     return r.json().get("results", [])
+
+
+async def find_similar_titles(title: str) -> tuple[dict | None, list[dict]]:
+    client = get_client()
+
+    search_results = await search_title(title, "multi")
+    seed = next(
+        (r for r in search_results if r.get("media_type") in ("movie", "tv")),
+        None,
+    )
+
+    if not seed:
+        return None, []
+
+    media_type = seed["media_type"]
+    tmdb_id = seed["id"]
+
+    rec_resp, sim_resp = await asyncio.gather(
+        client.get(f"/{media_type}/{tmdb_id}/recommendations"),
+        client.get(f"/{media_type}/{tmdb_id}/similar"),
+    )
+
+    rec_resp.raise_for_status()
+    sim_resp.raise_for_status()
+
+    combined = (
+        rec_resp.json().get("results", [])
+        + sim_resp.json().get("results", [])
+    )
+
+    seed_title_lower = title.strip().lower()
+    seen_ids = {tmdb_id}
+    results = []
+
+    for r in combined:
+        if r.get("id") in seen_ids:
+            continue
+
+        r_title = (r.get("title") or r.get("name") or "").lower()
+
+        if seed_title_lower and seed_title_lower in r_title:
+            continue
+
+        seen_ids.add(r["id"])
+        r["media_type"] = r.get("media_type", media_type)
+        results.append(r)
+
+    return seed, results
 
 
 async def discover(media_type: str, genre_id: int | None = None, page: int = 1):

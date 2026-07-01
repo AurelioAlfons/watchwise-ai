@@ -24,7 +24,11 @@ Watching with: {prefs.watching_with}
 Similar to: {prefs.similar_title}
 Notes: {prefs.free_text}
 
-Choose exactly 5 from this list only:
+Choose exactly 5 from this list only.
+Prioritize thematic/vibe variety.
+Avoid sequels or entries from the same franchise as "{prefs.similar_title}".
+
+Candidates:
 {candidate_text}
 
 Return only valid JSON in this format:
