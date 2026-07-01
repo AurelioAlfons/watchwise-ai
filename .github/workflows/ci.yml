@@ -1,0 +1,48 @@
+# Workflow for continuous integration (CI)
+# Run test for backend and build for frontend on and pull request and push to main branch
+name: CI
+
+# Push / Pull request to main branch will trigger the workflow
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Run backend tests
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        # Run the command from backend
+        working-directory: backend
+    steps:
+      # Donwload the code from the repository
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          # Install Python 3.11 first
+          python-version: "3.11"
+        # Intall dependencies from requirements.txt
+      - run: pip install -r requirements.txt
+        # Run the automated test
+      - run: PYTHONPATH=. pytest
+
+  # Parallel job to build the frontend
+  frontend-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - run: npm install
+
+      - run: npm run build
