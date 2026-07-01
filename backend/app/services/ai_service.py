@@ -6,6 +6,13 @@ from app.config import settings
 from app.schemas import RecommendRequest
 
 
+class AIServiceError(Exception):
+    def __init__(self, message: str, status_code: int = 503):
+        self.message = message
+        self.status_code = status_code
+        super().__init__(message)
+
+
 async def rank_and_explain(prefs: RecommendRequest, candidates: list[dict]) -> list[dict]:
     candidates = candidates[:20]
 
@@ -56,6 +63,13 @@ async def _call_openai(prompt: str):
                 "max_tokens": 600,
             },
         )
+
+        if r.status_code == 429:
+            raise AIServiceError("AI service is busy. Please wait a moment and try again.", 429)
+
+        if r.status_code >= 500:
+            raise AIServiceError("AI service is temporarily unavailable. Please try again soon.", 503)
+
         r.raise_for_status()
         text = r.json()["choices"][0]["message"]["content"]
         return _safe_parse(text)
@@ -74,6 +88,13 @@ async def _call_gemini(prompt: str):
                 },
             },
         )
+
+        if r.status_code == 429:
+            raise AIServiceError("AI service is busy. Please wait a moment and try again.", 429)
+
+        if r.status_code >= 500:
+            raise AIServiceError("AI service is temporarily unavailable. Please try again soon.", 503)
+
         r.raise_for_status()
         text = r.json()["candidates"][0]["content"]["parts"][0]["text"]
         return _safe_parse(text)
@@ -83,12 +104,11 @@ def _safe_parse(text: str):
     match = re.search(r"\[.*\]", text, re.DOTALL)
 
     if not match:
-        print(f"[AI PARSE FAILED] no JSON array found in: {text!r}")
+        print("[AI PARSE FAILED] no JSON array found")
         return []
 
     try:
         return json.loads(match.group(0))
     except json.JSONDecodeError as e:
         print(f"[AI PARSE FAILED] error={e}")
-        print(f"[AI RAW OUTPUT] {text!r}")
         return []

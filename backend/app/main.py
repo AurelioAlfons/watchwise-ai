@@ -84,14 +84,20 @@ async def recommend(req: RecommendRequest):
 
         candidates = [c for sub in candidate_lists for c in sub]
 
-    print(f"[TIMING] Candidate search: {time.perf_counter() - t0:.2f}s", flush=True)
+    print(f"TIME:     Candidate search: {time.perf_counter() - t0:.2f}s", flush=True)
 
     if not candidates:
         raise HTTPException(404, "No matching titles found")
 
     t1 = time.perf_counter()
-    picks = await ai_service.rank_and_explain(req, candidates)
-    print(f"[TIMING] AI ranking: {time.perf_counter() - t1:.2f}s", flush=True)
+
+    try:
+        picks = await ai_service.rank_and_explain(req, candidates)
+    except ai_service.AIServiceError as e:
+        print(f"AI:       {e.status_code} {e.message}", flush=True)
+        raise HTTPException(status_code=e.status_code, detail=e.message)
+
+    print(f"TIME:     AI ranking: {time.perf_counter() - t1:.2f}s", flush=True)
 
     if not picks:
         raise HTTPException(502, "AI ranking failed")
@@ -111,7 +117,8 @@ async def recommend(req: RecommendRequest):
         )
         for p in valid_picks
     ])
-    print(f"[TIMING] TMDB enrichment: {time.perf_counter() - t2:.2f}s", flush=True)
+
+    print(f"TIME:     TMDB enrichment: {time.perf_counter() - t2:.2f}s", flush=True)
 
     recommendations = []
 
@@ -136,6 +143,6 @@ async def recommend(req: RecommendRequest):
             )
         )
 
-    print(f"[TIMING] Total request: {time.perf_counter() - start_time:.2f}s", flush=True)
+    print(f"TIME:     Total request: {time.perf_counter() - start_time:.2f}s", flush=True)
 
     return RecommendResponse(recommendations=recommendations)
