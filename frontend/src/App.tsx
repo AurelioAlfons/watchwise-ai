@@ -32,7 +32,7 @@ export default function App() {
         </h1>
 
         <div className="mx-auto max-w-xl rounded-lg bg-white p-6 shadow">
-          <PreferenceForm onSubmit={handleSubmit} />
+          <PreferenceForm onSubmit={handleSubmit} loading={loading} />
         </div>
 
         {loading && (
