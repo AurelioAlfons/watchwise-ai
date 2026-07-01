@@ -67,6 +67,10 @@ async def _call_openai(prompt: str):
         if r.status_code == 429:
             raise AIServiceError("AI service is busy. Please wait a moment and try again.", 429)
 
+        if r.status_code == 400:
+            print(f"[OPENAI 400] {r.text}", flush=True)
+            raise AIServiceError("AI service rejected the request.", 502)
+
         if r.status_code >= 500:
             raise AIServiceError("AI service is temporarily unavailable. Please try again soon.", 503)
 
@@ -78,7 +82,8 @@ async def _call_openai(prompt: str):
 async def _call_gemini(prompt: str):
     async with httpx.AsyncClient(timeout=20.0) as client:
         r = await client.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={settings.GEMINI_API_KEY}",
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+            headers={"x-goog-api-key": settings.GEMINI_API_KEY},
             json={
                 "contents": [{"parts": [{"text": prompt}]}],
                 "generationConfig": {
@@ -91,6 +96,12 @@ async def _call_gemini(prompt: str):
 
         if r.status_code == 429:
             raise AIServiceError("AI service is busy. Please wait a moment and try again.", 429)
+
+        if r.status_code == 400:
+            # Log the response body (not headers/URL) so we see *why* without ever
+            # risking the key — the key now lives only in headers, which we don't log.
+            print(f"[GEMINI 400] {r.text}", flush=True)
+            raise AIServiceError("AI service rejected the request.", 502)
 
         if r.status_code >= 500:
             raise AIServiceError("AI service is temporarily unavailable. Please try again soon.", 503)
