@@ -1,49 +1,55 @@
 import json
+import re
 import httpx
+
 from app.config import settings
 from app.schemas import RecommendRequest
 
+
 async def rank_and_explain(prefs: RecommendRequest, candidates: list[dict]) -> list[dict]:
-    """
-    candidates: list of {id, title, media_type, overview, genre_names}
-    Returns list of {id, reason} for the top 5, picked by the LLM.
-    """
+    candidates = candidates[:20]
+
     candidate_text = "\n".join(
-        f"- id:{c['id']} | {c['title']} ({c['media_type']}) | genres: {c['genre_names']} | {c['overview'][:200]}"
+        f"- id:{c['id']} | {c['title']} ({c['media_type']}) | {c.get('overview', '')[:120]}"
         for c in candidates
     )
 
-    prompt = f"""You are a movie/anime recommendation assistant.
-User preferences:
-- Type: {prefs.media_type}
-- Genre: {prefs.genre}
-- Mood: {prefs.mood}
-- Watching with: {prefs.watching_with}
-- Similar to: {prefs.similar_title}
-- Notes: {prefs.free_text}
+    prompt = f"""You recommend movies/anime.
 
-Here are candidate titles (only choose from this list, do not invent new titles):
+User:
+Type: {prefs.media_type}
+Genre: {prefs.genre}
+Mood: {prefs.mood}
+Watching with: {prefs.watching_with}
+Similar to: {prefs.similar_title}
+Notes: {prefs.free_text}
+
+Choose exactly 5 from this list only:
 {candidate_text}
 
-Pick the best 5 matches and explain briefly (1-2 sentences) why each fits the user's mood and context.
-Respond ONLY with valid JSON, no markdown, in this exact format:
-[{{"id": <id>, "reason": "<short reason>"}}, ...]
+Return only valid JSON in this format:
+[
+  {{"id": 123, "reason": "short reason"}},
+  {{"id": 456, "reason": "short reason"}}
+]
 """
 
     if settings.AI_PROVIDER == "openai":
         return await _call_openai(prompt)
+
     return await _call_gemini(prompt)
 
 
 async def _call_openai(prompt: str):
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=20.0) as client:
         r = await client.post(
             "https://api.openai.com/v1/chat/completions",
             headers={"Authorization": f"Bearer {settings.OPENAI_API_KEY}"},
             json={
                 "model": "gpt-4o-mini",
                 "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.6,
+                "temperature": 0.4,
+                "max_tokens": 600,
             },
         )
         r.raise_for_status()
@@ -52,10 +58,17 @@ async def _call_openai(prompt: str):
 
 
 async def _call_gemini(prompt: str):
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=20.0) as client:
         r = await client.post(
             f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={settings.GEMINI_API_KEY}",
-            json={"contents": [{"parts": [{"text": prompt}]}]},
+            json={
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {
+                    "temperature": 0.4,
+                    "maxOutputTokens": 600,
+                    "thinkingConfig": {"thinkingBudget": 0},
+                },
+            },
         )
         r.raise_for_status()
         text = r.json()["candidates"][0]["content"]["parts"][0]["text"]
@@ -63,8 +76,15 @@ async def _call_gemini(prompt: str):
 
 
 def _safe_parse(text: str):
-    text = text.strip().strip("```json").strip("```").strip()
+    match = re.search(r"\[.*\]", text, re.DOTALL)
+
+    if not match:
+        print(f"[AI PARSE FAILED] no JSON array found in: {text!r}")
+        return []
+
     try:
-        return json.loads(text)
-    except json.JSONDecodeError:
+        return json.loads(match.group(0))
+    except json.JSONDecodeError as e:
+        print(f"[AI PARSE FAILED] error={e}")
+        print(f"[AI RAW OUTPUT] {text!r}")
         return []
