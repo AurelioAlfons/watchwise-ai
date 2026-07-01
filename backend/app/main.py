@@ -4,14 +4,17 @@ import time
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.config import settings
 from app.schemas import RecommendRequest, RecommendResponse, Recommendation
 from app.services import tmdb_service, ai_service
 
 app = FastAPI(title="WatchWise AI")
 
+origins = [o.strip() for o in settings.CORS_ORIGINS.split(",")]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
