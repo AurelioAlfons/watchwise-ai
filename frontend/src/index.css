@@ -1,1 +1,14 @@
 @import "tailwindcss";
+
+@theme {
+  --color-ink: #0B0D17;
+  --color-surface: #141826;
+  --color-surfaceSoft: #1E2338;
+  --color-border: #262B45;
+  --color-gold: #F5B942;
+  --color-goldSoft: rgba(245, 185, 66, 0.14);
+  --color-muted: #9098B5;
+
+  --font-display: "Sora", sans-serif;
+  --font-sans: "Inter", sans-serif;
+}

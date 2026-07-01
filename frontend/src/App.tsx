@@ -25,27 +25,30 @@ export default function App() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 p-6">
-      <div className="mx-auto max-w-6xl">
-        <h1 className="mb-6 text-center text-4xl font-bold">
-          WatchWise AI 🎬
-        </h1>
-
-        <div className="mx-auto max-w-xl rounded-lg bg-white p-6 shadow">
-          <PreferenceForm onSubmit={handleSubmit} loading={loading} />
+    <main className="min-h-screen bg-ink font-sans">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 py-10 sm:py-16">
+        <div className="text-center mb-10">
+          <h1 className="font-display text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
+            WatchWise <span className="text-gold">AI</span>
+          </h1>
+          <p className="text-muted mt-3 text-sm sm:text-base max-w-md mx-auto">
+            Tell us your mood — we'll find something worth watching.
+          </p>
         </div>
 
+        <PreferenceForm onSubmit={handleSubmit} loading={loading} />
+
         {loading && (
-          <p className="mt-6 text-center text-gray-600">
-            Finding recommendations...
+          <p className="mt-8 text-center text-muted animate-pulse">
+            Finding your picks...
           </p>
         )}
 
         {error && (
-          <p className="mt-6 text-center text-red-600">{error}</p>
+          <p className="mt-8 text-center text-red-400">{error}</p>
         )}
 
-        <ResultsGrid recommendations={recommendations} />
+        <ResultsGrid recs={recommendations} />
       </div>
     </main>
   );
