@@ -6,6 +6,10 @@ from app.config import settings
 _genre_cache: dict[str, dict[str, int]] = {}
 _client_instance: httpx.AsyncClient | None = None
 
+# Certifications considered appropriate when "watching_with" is kids
+KID_SAFE_MOVIE_CERTS = {"G", "PG"}
+KID_SAFE_TV_RATINGS = {"TV-Y", "TV-Y7", "TV-G", "TV-PG"}
+
 
 def get_client() -> httpx.AsyncClient:
     global _client_instance
@@ -79,12 +83,52 @@ async def find_similar_titles(title: str) -> tuple[dict | None, list[dict]]:
     return seed, results
 
 
-async def discover(media_type: str, genre_id: int | None = None, page: int = 1):
+def get_certification_filter(watching_with: str | None, media_type: str) -> dict:
+    """
+    Returns extra TMDB /discover params to restrict results to kid-appropriate
+    certifications when watching_with == "kids". Only applies to movies —
+    TMDB's /discover/tv does not support certification filtering, so TV
+    results are filtered separately after enrichment (see is_kid_appropriate).
+    """
+    if watching_with != "kids" or media_type != "movie":
+        return {}
+
+    return {
+        "certification_country": settings.REGION,
+        "certification.lte": "PG",
+    }
+
+
+def is_kid_appropriate(media_type: str, age_rating: str | None) -> bool:
+    """
+    Post-filter used for TV titles (and as a safety net for movies) since
+    TMDB's discover endpoint can't certification-filter TV shows directly.
+    If no rating is available at all, we exclude it to be safe rather than
+    risk showing unrated/adult content to a kids audience.
+    """
+    if not age_rating:
+        return False
+
+    if media_type == "movie":
+        return age_rating in KID_SAFE_MOVIE_CERTS
+
+    return age_rating in KID_SAFE_TV_RATINGS
+
+
+async def discover(
+    media_type: str,
+    genre_id: int | None = None,
+    extra_params: dict | None = None,
+    page: int = 1,
+):
     client = get_client()
     params = {"sort_by": "popularity.desc", "page": page}
 
     if genre_id:
         params["with_genres"] = genre_id
+
+    if extra_params:
+        params.update(extra_params)
 
     r = await client.get(f"/discover/{media_type}", params=params)
     r.raise_for_status()

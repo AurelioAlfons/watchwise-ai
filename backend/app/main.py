@@ -28,6 +28,8 @@ async def shutdown():
 
 
 async def _get_candidates(req: RecommendRequest, media_type: str) -> list[dict]:
+    extra_params = tmdb_service.get_certification_filter(req.watching_with, media_type)
+
     if req.similar_title:
         seed, results = await tmdb_service.find_similar_titles(req.similar_title)
 
@@ -37,7 +39,7 @@ async def _get_candidates(req: RecommendRequest, media_type: str) -> list[dict]:
                 genres = await tmdb_service.get_genres(media_type)
                 genre_id = genres.get(req.genre.lower())
 
-            results = await tmdb_service.discover(media_type, genre_id)
+            results = await tmdb_service.discover(media_type, genre_id, extra_params)
     else:
         genre_id = None
 
@@ -45,7 +47,7 @@ async def _get_candidates(req: RecommendRequest, media_type: str) -> list[dict]:
             genres = await tmdb_service.get_genres(media_type)
             genre_id = genres.get(req.genre.lower())
 
-        results = await tmdb_service.discover(media_type, genre_id)
+        results = await tmdb_service.discover(media_type, genre_id, extra_params)
 
     candidates = []
 
@@ -124,6 +126,17 @@ async def recommend(req: RecommendRequest):
 
     for pick, info in zip(valid_picks, infos):
         c = candidate_map[pick["id"]]
+
+        # Safety net: TMDB can't certification-filter TV shows at the
+        # discover level, and /similar and /recommendations don't support
+        # certification filtering at all. So for "watching with kids",
+        # we do a final check here using the age_rating we already fetched
+        # (no extra TMDB calls — this data is already in `info`).
+        if req.watching_with == "kids" and not tmdb_service.is_kid_appropriate(
+            c["media_type"], info["age_rating"]
+        ):
+            print(f"FILTERED: {c['title']} ({info['age_rating']}) — not kid-appropriate", flush=True)
+            continue
 
         recommendations.append(
             Recommendation(
