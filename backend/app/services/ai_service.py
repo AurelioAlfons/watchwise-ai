@@ -54,7 +54,7 @@ async def _call_openai(prompt: str):
 async def _call_gemini(prompt: str):
     async with httpx.AsyncClient(timeout=30.0) as client:
         r = await client.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={settings.GEMINI_API_KEY}",
+            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={settings.GEMINI_API_KEY}",
             json={"contents": [{"parts": [{"text": prompt}]}]},
         )
         r.raise_for_status()
