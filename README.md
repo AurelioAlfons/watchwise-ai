@@ -1,138 +1,88 @@
 # WatchWise AI 🎬
-WatchWise AI recommends movies or TV shows based on your mood and preferences.
 
-## Live Demo
-- Frontend: https://watchwise-ai-puce.vercel.app
-- Backend: https://watchwise-ai.onrender.com
+<img width="1846" height="961" alt="image" src="https://github.com/user-attachments/assets/f6ac3602-4809-45cf-8a74-e363e96ba328" />
 
-Note: the backend is on a free instance and may take ~30-50s to wake up if inactive.
 
-## Features
-- Movie and TV recommendations
-- AI-generated reasons, powered by real TMDB candidate data (never invented titles)
-- Genre and mood selection, plus "similar to a title you loved" search
-- Content filtering by age certification when watching with kids
-- TMDB movie data, streaming providers, runtime, and age ratings
-- Docker support
-- Automated GitHub Actions CI (backend tests + frontend build)
-- Deployed on Render (backend) + Vercel (frontend)
+**AI-powered movie and TV recommendations based on your mood, preferences, and favourite titles.**
 
-## Tech Stack
-- React + TypeScript + Tailwind CSS
-- FastAPI + Python 3.11
-- TMDB API
-- Gemini API (or OpenAI, configurable)
-- Docker
+[🚀 Live Demo](https://watchwise-ai-puce.vercel.app)
 
 ---
 
-## Project Structure
-```text
-watchwise-ai/
-├── backend/
-├── frontend/
-├── docker-compose.yml
-└── README.md
-```
+## 🛠 Tech Stack
+
+![React](https://img.shields.io/badge/React-20232A?style=for-the-badge\&logo=react\&logoColor=61DAFB)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge\&logo=typescript\&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=for-the-badge\&logo=tailwind-css\&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge\&logo=fastapi\&logoColor=white)
+![Python](https://img.shields.io/badge/Python_3.11-3776AB?style=for-the-badge\&logo=python\&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge\&logo=docker\&logoColor=white)
+![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge\&logo=vercel\&logoColor=white)
+![Render](https://img.shields.io/badge/Render-46E3B7?style=for-the-badge\&logo=render\&logoColor=black)
+
+**APIs:** TMDB API · Gemini API / OpenAI
 
 ---
 
-## How Recommendations Work
-1. **Search** — TMDB finds real candidate titles based on genre, or via TMDB's own similarity/recommendation graph if a "similar to" title is given
-2. **Rank** — an AI model picks the best 5 from that real candidate pool and explains why, prioritizing variety over same-franchise picks
-3. **Filter** — if "watching with kids" is selected, results are restricted to G/PG (movies) or TV-Y/TV-Y7/TV-G/TV-PG (TV), based on TMDB certification data. Titles with no rating data are excluded rather than risked.
-4. **Enrich** — runtime, age rating, and streaming providers are attached to the final 5 picks
+## 📖 About
 
-The AI never invents titles — it only ranks and explains real TMDB data.
+WatchWise AI is a movie and TV recommendation app that helps users decide what to watch based on their mood, preferred genres, and titles they already enjoy.
+
+The project was built to explore how AI can work alongside real external data rather than generating unreliable recommendations. WatchWise only recommends real titles retrieved from TMDB, while AI is used to rank the results and explain why each recommendation fits the user.
 
 ---
 
-## Environment Variables
+## ✨ Core Features
 
-### Backend (`backend/.env`)
-```env
-TMDB_API_KEY=your_tmdb_api_key
-GEMINI_API_KEY=your_gemini_api_key
-AI_PROVIDER=gemini
-WATCH_REGION=AU
-CORS_ORIGINS=http://localhost:3000,http://localhost:5173
-```
-
-### Frontend (`frontend/.env`)
-```env
-VITE_API_URL=http://localhost:8000
-```
+* **AI Recommendations** — Get five personalised movie or TV recommendations based on your preferences.
+* **Mood & Genre Filtering** — Choose genres, moods, or search for titles similar to something you already enjoyed.
+* **Kids Content Filtering** — Restrict recommendations using movie and TV age certifications when watching with children.
+* **Real TMDB Data** — Displays real titles, runtime, age ratings, streaming providers, and other TMDB information.
+* **AI-Powered Ranking** — Gemini or OpenAI ranks real TMDB candidates instead of inventing movie or TV titles.
+* **Automated CI** — GitHub Actions runs backend tests and verifies the frontend build automatically.
 
 ---
 
-## Run Locally
+## ⚙️ How It Works
 
-### Backend
-```bash
-cd backend
-.\venv\Scripts\Activate.ps1
-uvicorn app.main:app --reload --port 8000
-```
+The **React + TypeScript** frontend sends the user's preferences to a **FastAPI** backend.
 
-### Frontend
-```bash
-cd frontend
-npm install
-npm run dev
-```
+The backend searches **TMDB** for real movie or TV candidates based on genre, mood, or a similar title.
 
-Frontend:
-```
-http://localhost:5173
-```
-Backend:
-```
-http://localhost:8000
-```
+An AI model then ranks those candidates and selects the best five recommendations while generating a short explanation for each one.
+
+If kids filtering is enabled, certification data is checked to remove unsuitable or unrated content.
+
+Finally, the backend enriches the selected titles with information such as runtime, age rating, and streaming providers before returning them to the frontend.
+
+The AI never creates fictional titles — it only ranks and explains real TMDB results.
 
 ---
 
-## Run with Docker
-```bash
-docker compose up --build
-```
-Frontend:
-```
-http://localhost:3000
-```
-Backend:
-```
-http://localhost:8000
-```
+## 📌 Project Status
+
+* ✅ AI movie and TV recommendation system
+* ✅ TMDB integration and streaming provider data
+* ✅ Kids certification filtering
+* ✅ Docker support and automated GitHub Actions CI
+* ✅ Frontend deployed on Vercel
+* ✅ Backend deployed on Render
+* 🚧 Improving recommendation filtering and personalisation
 
 ---
 
-## Run Tests
-```bash
-cd backend
-$env:PYTHONPATH="."
-pytest -v
-```
-Covers AI response parsing (malformed/wrapped JSON handling) and kids content certification filtering.
+## 🔮 What's Next
+
+* Add user accounts and saved recommendation history
+* Improve personalised recommendations across sessions
+* Add more detailed age-based filtering for children
+* Improve recommendation variety and filtering
+* Add favourites and watchlist functionality
 
 ---
 
-## Deployment
-- Backend deployed on **Render** (Docker Web Service), root directory `backend`
-- Frontend deployed on **Vercel**, root directory `frontend`
-- Env vars (`TMDB_API_KEY`, `GEMINI_API_KEY`, `CORS_ORIGINS`, `WATCH_REGION`) are set directly in Render's dashboard, not committed
-- `VITE_API_URL` is set in Vercel's dashboard and points to the live Render backend
+## ⚠️ Disclaimer
 
----
+WatchWise uses TMDB for movie and TV information but is not endorsed or certified by TMDB.
 
-## Known Limitations
-- "Watching with kids" applies one broad certification cutoff (PG/TV-PG and under), not age-tiered filtering
-- Certification filtering for TV shows and "similar to" searches happens after the AI ranking step (TMDB doesn't support certification filtering on those endpoints), so a kids-filtered request may occasionally return fewer than 5 results
-- No login or database (MVP) — no saved history or personalization across sessions
-
----
-
-## Notes
-- Uses TMDB for movie/show data and streaming availability
-- Uses Gemini (or OpenAI) to rank and explain recommendations from real TMDB candidates
-- API keys are stored in `.env` / hosting dashboards and are **not** committed to GitHub
+The backend is hosted on a free Render instance and may take around **30–50 seconds** to wake up after a period of inactivity.
